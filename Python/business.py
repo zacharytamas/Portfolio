@@ -157,7 +157,7 @@ class Business(models.Model):
     
     def set_category_ancestors(self):
         """
-        Goes through the classified's categories and adds all 
+        Goes through the business's categories and adds all 
         ancestor categories of its categories.
         """
         for cat in self.categories.exclude(parent=None):
@@ -165,6 +165,15 @@ class Business(models.Model):
             while parent != None:
                 self.categories.add(parent)
                 parent = parent.parent
+   
+   def setCoordinates(self):
+      """Geolocates the business using Google maps and saves the coordinates."""
+      try:
+          place, (lat, lng) = geocoders.Google().geocode("%s, %s, %s" % 
+            (self.address_street, self.address_city, self.address_state))
+          self.longitude = lng
+          self.latitude = lat
+      except: pass
     
     def save(self, *args, **kwargs):
         """Saves the business to the database."""
@@ -175,11 +184,7 @@ class Business(models.Model):
         is_new = (None == self.id)
         
         if not self.longitude or not self.latitude:
-            try:
-                place, (lat, lng) = geocoders.Google().geocode("%s, %s, %s" % (self.address_street, self.address_city, self.address_state))
-                self.longitude = lng
-                self.latitude = lat
-            except: pass
+            self.setCoordinates()
         
         super(Business, self).save(*args, **kwargs)
         if is_new or getattr(self, 'set_category', False):
